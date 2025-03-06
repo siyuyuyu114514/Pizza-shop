@@ -1,3 +1,6 @@
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 class SliceOHeaven {
@@ -36,6 +39,7 @@ class SliceOHeaven {
     private double orderTotal;
     private String pizzaIngredients;
     private final List<String> orderItems = new ArrayList<>();
+    
     public SliceOHeaven(){
         this.orderId = DEF_ORDER_ID;
         this.pizzaIngredients = DEF_PIZZA_INGREDIENTS;
@@ -68,35 +72,108 @@ class SliceOHeaven {
         this.pizzaIngredients = pizzaIngredients;
     }
     
-    public void takeOrder(List<String> pizzas, List<String> sides, List<String> drinks){
-        processItems(pizzas, PIZZA_PRICE, "Pizza");
-        processItems(sides, SIDES, "Side");
-        processItems(drinks, DRINKS, "Drink");
+    public void takeOrder(){
+        Scanner scanner = new Scanner(System.in);
+        try{
+        System.out.println("Enter three ingredients for your pizza(use spaces to separate ingredients):");
+        String ing1 = scanner.next();
+        String ing2 = scanner.next();
+        String ing3 = scanner.next();
+        orderItems.add("Pizza Ingredients: " + ing1 + ", " + ing2 + ", " + ing3);
+
+        System.out.println("Enter size of pizza(Small, Medium, Large):");
+        String pizzaSize = scanner.next();
+        orderItems.add("Pizza Size: " + pizzaSize);
+
+
+        System.out.println("Do you want extra cheese (Y/N):");
+        String extraCheese = scanner.next();
+        orderItems.add("Extra Cheese: " + extraCheese);
+
+        System.out.println("Enter one side dish (Calzone, Garlic bread, None):");
+        String sideDish = scanner.next();
+        orderItems.add("Side Dish: " + sideDish);
+
+        System.out.println("Enter drinks(Cold Coffee, Cocoa drink, Coke, None):");
+        String drinks = scanner.next();
+        orderItems.add("Drinks: " + drinks);
+
+        System.out.println("Would you like the chance to pay only half for your order? (Y/N):");
+        String wantDiscount = scanner.next();
+
+        if (wantDiscount.equalsIgnoreCase("Y")){
+            isItYourBirthday();
+        }else {
+            makeCardPayment();
+        }
+    }finally {
+        scanner.close();
+    }
+}   
+
+    public void isItYourBirthday(){
+        Scanner scanner = new Scanner(System.in);
+        try{
+        System.out.println("Enter your birthday (yyyy-MM-dd):");
+        String birthdateStr = scanner.next();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-dd");
+        LocalDate birthdate = LocalDate.parse(birthdateStr, formatter);
+        LocalDate today = LocalDate.now();
+
+        int age = Period.between(birthdate, today).getYears();
+        boolean isBirthday = birthdate.getMonth() == today.getMonth() && birthdate.getDayOfMonth() == today.getDayOfMonth();
+
+        if (age < 18 && isBirthday){
+            System.out.println("Congratulations! You pay only half the price for your order");
+            orderTotal /= 2;
+        }else{
+            System.out.println("Too bad! You do not meet the conditions to get our 50% discount"); 
+        }
+    }finally {
+        scanner.close();
+    }
+}
+    public void makeCardPayment() {
+        Scanner scanner = new Scanner(System.in);
+        try{
+        System.out.println("Enter your card number:");
+        long cardNumber = scanner.nextLong();
+        System.out.println("Enter the card's expiry date (YYYY-MM):");
+        String expiryDate = scanner.next();
+        System.out.println("Enter the card's cvv number:");
+        int cvv = scanner.nextInt();
+
+        processCardPayment(cardNumber, expiryDate, cvv);
+    }finally {
+        scanner.close();
+    }
+}
+    public void processCardPayment(long cardNumber, String expiryDate, int cvv) {
+        String cardNumberStr = Long.toString(cardNumber);
+        int cardLength = cardNumberStr.length();
+        if (cardLength == 14) {
+            System.out.println("Card accepted");
+        } else {
+            System.out.println("Invalid card");
+            return;
+        }
+
+        int firstCardDigit = Integer.parseInt(cardNumberStr.substring(0, 1));
+        System.out.println("First card digit: " + firstCardDigit);
+
+        long blacklistedNumber = 12345678901234L; 
+        if (cardNumber == blacklistedNumber) {
+            System.out.println("Card is blacklisted. Please use another card");
+            return;
+        }
+
+        int lastFourDigits = Integer.parseInt(cardNumberStr.substring(cardNumberStr.length() - 4));
+        System.out.println("Last four digits: " + lastFourDigits);
+        
+        String cardNumberToDisplay = cardNumberStr.charAt(0) + cardNumberStr.substring(1, cardNumberStr.length() - 4).replaceAll(".", "*") + cardNumberStr.substring(cardNumberStr.length() - 4);
+        System.out.println("Card number to display: " + cardNumberToDisplay);
+
         printReceipt();
-    }
-
-    private void processItems(List<String> items, Map<String, Double> menu, String category){
-        if (items == null) return;
-
-        for (String item : items){
-            if (menu.containsKey(item)){
-                double price = menu.get(item);
-                orderTotal += price;
-                orderItems.add(String.format("%s: %s - $%.2f", category, item, price));
-                if(category.equals("Pizza")){
-                    makePizza(item);
-                }
-            } else {
-                System.out.println("Item not available: " + item);
-            }
-        }
-    }
-
-    private void makePizza(String pizzaType){
-        if (PIZZA_INGREDIENTS.containsKey(pizzaType)){
-            String ingredients = String.join(", ", PIZZA_INGREDIENTS.get(pizzaType));
-            System.out.println("Making " + pizzaType + " pizza with: " + ingredients);
-        }
     }
 
     public void printReceipt(){
@@ -111,34 +188,10 @@ class SliceOHeaven {
         
     }
 
-    public void processCardPayment(String cardNumber, String expiryDate, int cvv){
-        int cardLength = cardNumber.length();
-        if (cardLength == 14){
-            System.out.println("Card acceptd");
-        }else{
-            System.out.println("Invalid card");
-            return;
-        }
-
-        int firstCardDigit = Integer.parseInt(cardNumber.substring(0,1));
-        System.out.println("First card digit: " + firstCardDigit);
-
-        String blacklistedNumber = "1145141919810";
-        if (cardNumber.equals(blacklistedNumber)){
-            System.out.println("Card is blacklisted. Please use another card");
-            return;
-        }
-
-        int lastFourDigits = Integer.parseInt(cardNumber.substring(cardNumber.length() - 4));
-        System.out.println("Last four digits: " + lastFourDigits);
-
-        String cardNumberToDisplay = cardNumber.charAt(0) + cardNumber.substring(1,cardNumber.length() - 4).replaceAll(".","*") + cardNumber.substring(cardNumber.length() - 4);
-        System.out.println("Card number to display: " + cardNumberToDisplay);
-    }
-
     public void specialOfTheDay(String pizzaOfTheDay, String sideOfTheDay, String specialPrice){
         System.out.println("Pizza of the day: " + pizzaOfTheDay);
         System.out.println("Side of the day: " + sideOfTheDay);
         System.out.println("Special price: " + specialPrice);
     }
 }
+
